@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memory In A Buffer</title>
+  <style>
+    html, body { height:100%; margin:0 }
+    body {
+      background:
+        url("resource/bg/pixel_bg.png") no-repeat center/cover,
+        url("resource/bg/main_bg.png")  no-repeat center/cover;
+      position:relative; overflow:hidden;
+    }
+    @font-face {
+      font-family:'IntroFriday';
+      src:url('resource/fonts/IntroFriday.ttf') format('truetype');
+    }
+
+    /* ----------- С Т А Т У С  –  Б А Р ----------- */
+    #status-bar{
+      position:absolute; top:10px; right:10px;
+      width:250px; z-index:11; transition:right .3s ease;
+    }
+    #status-bar .frame{display:block; width:100%; height:auto; user-select:none}
+    #status-bar .counters{
+      position:absolute; top:40px; left:30px;
+      display:flex; flex-direction:column; gap:8px;
+    }
+    #status-bar .counter{display:flex; align-items:center; gap:6px}
+    #status-bar .counter img{height:28px; width:auto}
+    #status-bar .counter span{
+      font-family:'IntroFriday',sans-serif;
+      color:#fff; font-size:16px; line-height:1;
+    }
+
+    /* ----------- К Н О П К И  Р Е Ж И М О В ----------- */
+    #buttons{
+      position:absolute; top:20px; left:20px;
+      display:flex; flex-direction:column; gap:20px;
+      z-index:10; transition:left .3s ease;
+    }
+    .button{
+      width:120px; height:120px;
+      cursor:pointer; user-select:none; position:relative;
+    }
+    .button img{
+      position:absolute; top:0; left:0;
+      width:100%; height:100%; transition:opacity .2s;
+    }
+    .button .active-img{opacity:0}
+    .button.active .default-img{opacity:0}
+    .button.active .active-img {opacity:1}
+    .button:hover .default-img {opacity:.5}
+
+    /* ----------- К О Н Т Е Н Т  Р Е Ж И М О В ----------- */
+    #content-container{
+      position:absolute; top:0; left:0;
+      width:100%; height:100%; z-index:0; pointer-events:none;
+    }
+    .farm-content, .shop-content, .wish-content, .gallery-content{
+      position:absolute; top:0; left:0;
+      width:100%; height:100%;
+      z-index:1; pointer-events:auto;
+    }
+
+    /* анимации появления-исчезновения контента */
+    @keyframes fadeIn  {from{opacity:0; transform:scale(.95)}
+                        to  {opacity:1; transform:scale(1)}}
+    @keyframes fadeOut {from{opacity:1; transform:scale(1)}
+                        to  {opacity:0; transform:scale(.95)}}
+    .fade-in {animation:fadeIn .3s ease forwards}
+    .fade-out{animation:fadeOut .3s ease forwards}
+
+    /* ----------- К Н О П К А  С Б Р О С А ----------- */
+    #btn-reset{
+      position:absolute; bottom:20px; right:20px;
+      padding:8px 12px; font-family:IntroFriday,sans-serif;
+      background:rgba(0,0,0,.6); color:#fff;
+      border:none; border-radius:4px; cursor:pointer; z-index:12;
+    }
+    #btn-reset:hover{background:rgba(0,0,0,.8)}
+
+    /* ----------- С К Р Ы Т И Е  К Н О П О К ----------- */
+    .controls-hidden #buttons   {left:-200px !important}
+    .controls-hidden #status-bar{right:-260px !important}
+  </style>
+</head>
+<body>
+  <!-- Г Л А В Н Ы Й  З А Г О Л О В О К -->
+  <header id="app-header" style="
+    position:absolute; top:15%; left:50%;
+    transform:translateX(-50%);
+    text-align:center; z-index:2;">
+    <h1 style="
+      font-family:'IntroFriday',sans-serif;
+      font-size:48px; letter-spacing:.8em;
+      color:rgba(255,255,255,.8);
+      text-transform:uppercase; margin:0; white-space:nowrap;">
+      Memory In A Buffer
+    </h1>
+    <h2 id="subtitle" style="
+      font-family:'IntroFriday',sans-serif;
+      font-size:24px; letter-spacing:.5em;
+      color:rgba(255,255,255,.6);
+      text-transform:uppercase; margin:.5em 0 0;
+      white-space:nowrap;">
+      Farm Mode
+    </h2>
+  </header>
+
+  <!-- С Т А Т У С – Б А Р -->
+  <div id="status-bar">
+    <img class="frame" src="resource/ui/ballance.png" alt="Рамка баланса">
+    <div class="counters">
+      <div class="counter">
+        <img src="resource/icons/spice_small.png" alt="Пряность" title="Пряность">
+        <span id="spice-count">0</span>
+      </div>
+      <div class="counter">
+        <img src="resource/icons/nickel.png" alt="Никель" title="Никель">
+        <span id="nickel-count">0</span>
+      </div>
+      <div class="counter">
+        <img src="resource/icons/intel.png"
+             alt="Intel(R) Core(TM) i5-9400F CPU @ 2.90 GHz"
+             title="Intel(R) Core(TM) i5-9400F CPU @ 2.90 GHz">
+        <span id="intel-count">0</span>
+      </div>
+      <div class="counter">
+        <img src="resource/icons/amd.png" alt="AMD RX 5500 XT" title="AMD RX 5500 XT">
+        <span id="amd-count">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- К Н О П К И  Р Е Ж И М О В -->
+  <div id="buttons">
+    <div class="button" id="btn-farm">
+      <img class="default-img" src="resource/buttons/cat_farm_butt.png"      alt="">
+      <img class="active-img"  src="resource/buttons/cat_farm_butt_act.png"  alt="">
+    </div>
+    <div class="button" id="btn-shop">
+      <img class="default-img" src="resource/buttons/cat_shop_butt.png"      alt="">
+      <img class="active-img"  src="resource/buttons/cat_shop_butt_act.png"  alt="">
+    </div>
+    <div class="button" id="btn-wish">
+      <img class="default-img" src="resource/buttons/cat_wish_butt.png"      alt="">
+      <img class="active-img"  src="resource/buttons/cat_wish_butt_act.png"  alt="">
+    </div>
+    <!-- КНОПКА ГАЛЕРЕИ — скрыта по умолчанию, покажется через main.js,
+         когда в pulledChars будет ≥ 1 персонажа -->
+    <div class="button" id="btn-gallery" style="display:none">
+      <img class="default-img" src="resource/buttons/cat_gallery_butt.png"     alt="">
+      <img class="active-img"  src="resource/buttons/cat_gallery_butt_act.png" alt="">
+    </div>
+  </div>
+
+  <!-- К О Н Т Е Н Т -->
+  <div id="content-container"></div>
+
+  <!-- С Б Р О С  П Р О Г Р Е С С А -->
+  <button id="btn-reset">Объявить о банкротстве</button>
+
+  <!-- С К Р И П Т Ы -->
+  <script src="farm.js"></script>
+  <script src="shop.js"></script>
+  <script src="wish.js"></script>
+  <!-- gallery.js появится позже -->
+  <script src="main.js"></script>
+</body>
+</html>
